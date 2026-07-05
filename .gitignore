@@ -1,0 +1,11 @@
+# build files
+*.o
+*.dll
+*.obj
+*.so
+*.a
+build/
+bin/
+
+test
+compile_commands.json
