@@ -28,6 +28,14 @@ str str_fromcstr(char* data) {
 	return str_fromcstrlen(data, strlen(data));
 }
 
+// create an exact copy of the provided string
+str str_dup(str string) {
+	size_t stringSize = sizeof(struct str_s) + GET_STR_S_HDR(string)->cap;
+	struct str_s* new_str = (struct str_s*)calloc(1, stringSize);
+	memcpy(new_str, GET_STR_S_HDR(string), stringSize);
+	return new_str->data;
+}
+
 // free the memory used by string
 void str_destroy(str string) {
 	free(GET_STR_S_HDR(string));

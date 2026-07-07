@@ -15,8 +15,8 @@ typedef struct ArenaAlloc_s* ArenaAlloc;
 
 // creates a new allocator with the size len
 ArenaAlloc ArenaAlloc_new(size_t len);
-// returns a pointer to a block or memory which length is size
-void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size);
+// returns a pointer to a block or memory which length is size, alignment can be left 0 for automatic alignment
+void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size, size_t alignment);
 // resets the current index to the start of the block and uses the next pointer as the new block if not enough space is left
 void ArenaAlloc_reset(ArenaAlloc* arenaAlloc);
 // destroys every arena that is referenced in the arenaAlloc using the next pointer

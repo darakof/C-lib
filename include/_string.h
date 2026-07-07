@@ -20,6 +20,8 @@ str str_new(uint64_t initlen);
 str str_fromcstrlen(char* data, uint64_t len);
 // create a new string with the data, uses strlen to find the length
 str str_fromcstr(char* data);
+// create an exact copy of the provided string
+str str_dup(str string);
 // free the memory used by string
 void str_destroy(str string);
 

@@ -19,6 +19,8 @@ typedef char* arr;
 arr arr_new(uint64_t initlen, size_t elemSize);
 // initializes a new array using the data from a C array
 arr arr_fromcarr(void* data, size_t elemSize, uint64_t len);
+// duplicates an array
+arr arr_dup(arr array);
 // frees the memory of the array
 void arr_destroy(arr array);
 

@@ -19,6 +19,15 @@ arr arr_fromcarr(void* data, size_t elemSize, uint64_t len) {
 	return array;
 }
 
+// duplicate an array
+arr arr_dup(arr array) {
+	struct arr_s* arrhdr = GET_ARR_S_HDR(array);
+	size_t arraySize = sizeof(struct arr_s) + arrhdr->cap*arrhdr->stride;
+	struct arr_s* new_arr = (struct arr_s*)calloc(1, arraySize);
+	memcpy(new_arr, arrhdr, arraySize);
+	return new_arr->data;
+}
+
 // frees the memory of the array
 void arr_destroy(arr array) {
 	free(GET_ARR_S_HDR(array));
@@ -46,6 +55,9 @@ void* arr_next(arr array) {
 // returns a pointer to the last element and makes the array one elemnt shorter
 void* arr_pop(arr array) {
 	struct arr_s* arrhdr = GET_ARR_S_HDR(array);
+	
+	if (arrhdr->len == 0) return NULL;
+
 	// return the element using the predecremented length 
 	// (because the length is always one ahead of the last elemnt this ensures it gives
 	// the pointer of the last element and the last element is marked as usable) 

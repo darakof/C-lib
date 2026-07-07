@@ -1,6 +1,10 @@
 #include "arenamem.h"
 
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdlib.h>
+
+#define ALIGN_UP(num, align) (((num) + ((align) - 1)) & ~((align) - 1))
 
 // creates a new allocator with the size len
 ArenaAlloc ArenaAlloc_new(size_t len) {
@@ -9,6 +13,10 @@ ArenaAlloc ArenaAlloc_new(size_t len) {
 	aas->cap = len;
 	aas->index = 0;
 	aas->arena = (char*)malloc(len);
+	if (aas->arena == NULL){
+		free(aas);
+		return NULL;
+	}
 	aas->next = NULL;
 	aas->head = NULL;
 	return aas;
@@ -27,9 +35,16 @@ ArenaAlloc ArenaAlloc_append(ArenaAlloc arena, size_t len) {
 }
 
 // returns a pointer to a block or memory which length is size
-void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size) {
+void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size, size_t alignment) {
 	ArenaAlloc cur_aas = *arenaAlloc;
-	if (cur_aas->cap < cur_aas->index+size) {
+	// we allow the user to allign the allocation to a byte amount in case they know what alignment to use
+	size_t aligned;
+	if (alignment != 0)
+		aligned = ALIGN_UP(cur_aas->index, alignment);
+	else
+	 	aligned = ALIGN_UP(cur_aas->index, alignof(max_align_t));
+	// substraction because we dont want to overflow if we do size + aligned index
+	if (size > cur_aas->cap - aligned) {
 		if (cur_aas->next == NULL) {
 			ArenaAlloc new_aas;
 			if (cur_aas->cap*2 >= size)
@@ -39,6 +54,7 @@ void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size) {
 
 			if (new_aas == NULL) return NULL;
 			*arenaAlloc = new_aas;
+			cur_aas = new_aas;
 		} else {
 			if (cur_aas->next->cap < size) {
 				ArenaAlloc startskip;
@@ -64,8 +80,10 @@ void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size) {
 				target->next = startskip->next;
 				cur_aas->next = target;
 				*arenaAlloc = target;
+				cur_aas = target;
 			} else {
 				*arenaAlloc = cur_aas->next;
+				cur_aas = *arenaAlloc;
 			}
 		}
 	}
@@ -78,7 +96,7 @@ void* ArenaAlloc_alloc(ArenaAlloc* arenaAlloc, size_t size) {
 void ArenaAlloc_reset(ArenaAlloc* arenaAlloc) {
 	struct ArenaAlloc_s* cur_aas = *arenaAlloc;
 	if (cur_aas->head != NULL) {
-		for (struct ArenaAlloc_s* a = cur_aas->head; a->next != NULL; a = a->next)
+		for (struct ArenaAlloc_s* a = cur_aas->head; a != NULL; a = a->next)
 			a->index = 0;
 		*arenaAlloc = cur_aas->head;
 	} else {
@@ -89,8 +107,9 @@ void ArenaAlloc_reset(ArenaAlloc* arenaAlloc) {
 // destroys every arena that is referenced in the arenaAlloc using the next pointer
 void ArenaAlloc_destroy(ArenaAlloc arenaAlloc) {
 	struct ArenaAlloc_s* head = arenaAlloc->head;
-	while (head->next != NULL) {
+	while (head != NULL) {
 		struct ArenaAlloc_s* new_aas = head->next;
+		free(head->arena);
 		free(head);
 		head = new_aas;
 	}

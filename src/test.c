@@ -14,8 +14,8 @@ int main() {
 		arr_push(stringarr, &cstrarr[i]);
 	}
 	arr cstringarr = arr_fromcarr(cstrarr, sizeof(char), 14);
-	
-	printf("normal c array string: %s\nlen: %"PRIu64"\nmanual array: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\nfrom c string array: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\n", cstrarr, strlen(cstrarr), stringarr, arr_len(stringarr), arr_cap(stringarr), cstringarr, arr_len(cstringarr), arr_cap(cstringarr));
+	arr carboncopyarr = arr_dup(cstringarr);	
+	printf("normal c array string: %s\nlen: %"PRIu64"\nmanual array: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\nfrom c string array: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\ncarbon copy array: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\n", cstrarr, strlen(cstrarr), stringarr, arr_len(stringarr), arr_cap(stringarr), cstringarr, arr_len(cstringarr), arr_cap(cstringarr), carboncopyarr, arr_len(carboncopyarr), arr_cap(carboncopyarr));
 
 	// string testing
 	
@@ -25,5 +25,6 @@ int main() {
 		str_push(string, cstr[i]);
 	}
 	str cstring = str_fromcstrlen(cstr, 14);
-	printf("normal c array string: %s\nlen: %"PRIu64"\nmanual string: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\nfrom c string string: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\n", cstr, strlen(cstr), string, str_len(string), str_cap(string), cstring, str_len(cstring), str_cap(cstring));
+	str carboncopy = str_dup(cstring);
+	printf("normal c array string: %s\nlen: %"PRIu64"\nmanual string: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\nfrom c string string: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\ncarbon copy: %s\nlen: %"PRIu64"\ncap: %"PRIu64"\n", cstr, strlen(cstr), string, str_len(string), str_cap(string), cstring, str_len(cstring), str_cap(cstring), carboncopy, str_len(carboncopy), str_cap(carboncopy));
 }
