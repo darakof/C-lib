@@ -117,7 +117,23 @@ void arr_purge(arr array, void* initData) {
 uint64_t arr_len(arr array) {
 	return GET_ARR_S_HDR(array)->len;
 }
+
 // get the max length of the array
 uint64_t arr_cap(arr array) {
 	return GET_ARR_S_HDR(array)->cap;
+}
+
+// get the element size of the array
+size_t arr_elemSize(arr array) {
+	return GET_ARR_S_HDR(array)->stride;
+}
+
+// returns a pointer to an element with bounds checking
+void* arr_at(arr array, uint64_t index) {
+	return arr_indexvalid(array, index) ? array + arr_elemSize(array)*index : NULL;
+}
+
+// validates the index of the array
+inline bool arr_indexvalid(arr array, uint64_t index) {
+	return index >= 0 && index < arr_len(array) ? true : false;
 }
