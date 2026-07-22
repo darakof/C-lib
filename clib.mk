@@ -30,10 +30,8 @@ CLIB_LIB = clib
 CLIB_STATIC_LIB_LOC = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).a
 CLIB_SHARED_LIB_LOC = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).so
 
-# the library paths and files to link against
+# the library path to link against
 CLIB_LIB_LOC  = $(CLIB_BIN_LOC)
-CLIB_STATIC_LIB = $(CLIB_LIB).a
-CLIB_SHARED_LIB = $(CLIB_LIB).so
 
 $(CLIB_BUILD_LOC)/:
 	mkdir -p $@
@@ -52,9 +50,7 @@ $(CLIB_SHARED_LIB_LOC): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
 	$(CC) -shared $^ -o $@
 	@echo "Shared Library Built Successfully"
 
-$(CLIB_STATIC_LIB): $(CLIB_STATIC_LIB_LOC)
-
-$(CLIB_SHARED_LIB): $(CLIB_SHARED_LIB_LOC)
+$(CLIB_LIB): $(CLIB_STATIC_LIB_LOC) $(CLIB_SHARED_LIB_LOC)
 
 clean-clib:
 	rm -fr build bin
