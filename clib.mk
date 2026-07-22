@@ -52,6 +52,10 @@ $(CLIB_SHARED_LIB_LOC): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
 	$(CC) -shared $^ -o $@
 	@echo "Shared Library Built Successfully"
 
+$(CLIB_STATIC_LIB): $(CLIB_STATIC_LIB_LOC)
+
+$(CLIB_SHARED_LIB): $(CLIB_SHARED_LIB_LOC)
+
 clean-clib:
 	rm -fr build bin
 
