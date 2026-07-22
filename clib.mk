@@ -16,7 +16,7 @@ CFLAGS ?= -O2
 
 CLIB_VER = 0.1
 
-CLIB_OBJ = array.o string.o
+CLIB_OBJ = array.o string.o arenamem.o heapmem.o poolmem.o string.o
 CLIB_BUILD_OBJ = $(CLIB_OBJ:%=$(CLIB_BUILD_LOC)/%)
 
 CLIB_LOC := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
