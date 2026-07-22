@@ -26,9 +26,14 @@ CLIB_INCLUDE_LOC = $(CLIB_LOC)/include
 # link against this
 CLIB_LIB = clib
 
-# actual output files
-CLIB_STATIC_LIB = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).a
-CLIB_SHARED_LIB = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).so
+# actual output files with location
+CLIB_STATIC_LIB_LOC = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).a
+CLIB_SHARED_LIB_LOC = $(CLIB_BIN_LOC)/lib$(CLIB_LIB).so
+
+# the library paths and files to link against
+CLIB_LIB_LOC  = $(CLIB_BIN_LOC)
+CLIB_STATIC_LIB = lib$(CLIB_LIB).a
+CLIB_SHARED_LIB = lib$(CLIB_LIB).so
 
 $(CLIB_BUILD_LOC)/:
 	mkdir -p $@
@@ -39,11 +44,11 @@ $(CLIB_BIN_LOC)/:
 $(CLIB_BUILD_LOC)/%.o: $(CLIB_LOC)/src/%.c | $(CLIB_BUILD_LOC)/
 	$(CC) $(CFLAGS) -fPIC -c $< -o $@ -I$(CLIB_INCLUDE_LOC)
 
-$(CLIB_STATIC_LIB): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
+$(CLIB_STATIC_LIB_LOC): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
 	$(ARCHIVER) rcs $@ $^
 	@echo "Static Library Built Successfully"
 
-$(CLIB_SHARED_LIB): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
+$(CLIB_SHARED_LIB_LOC): $(CLIB_BUILD_OBJ) | $(CLIB_BIN_LOC)/
 	$(CC) -shared $^ -o $@
 	@echo "Shared Library Built Successfully"
 
