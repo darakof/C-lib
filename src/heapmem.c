@@ -1,7 +1,7 @@
 #include "heapmem.h"
 #include <stdlib.h>
 
-void* heap_alloc(size_t size) {
+void* heap_malloc(size_t size) {
 	return malloc(size);
 }
 
