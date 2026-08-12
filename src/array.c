@@ -137,3 +137,53 @@ void* arr_at(arr array, uint64_t index) {
 inline bool arr_indexvalid(arr array, uint64_t index) {
 	return index >= 0 && index < arr_len(array) ? true : false;
 }
+
+// array view
+
+arrView* arrv_new(arr array, uint64_t offset, uint64_t len) {
+	if (array == NULL) return NULL;
+	if (arr_len(array) < offset+len) return NULL;
+
+	arrView* view = (arrView*)malloc(sizeof(arrView));
+	view->offset = offset;
+	view->len = len;
+	view->elemSize = arr_elemSize(array);
+	// offset is in elements not bytes
+	view->data = (uint8_t*)array + (arr_elemSize(array) * offset);
+
+	return view;
+}
+
+// moves the view inside the array to the new offset and len
+void arrv_move(arrView* view, uint64_t offset, uint64_t len) {
+	if (view == NULL) return;
+
+	if (offset != view->offset) {
+		arr base = (char*)view->data - (view->offset*view->elemSize);
+		if (arr_len(base) < offset+len) return;
+
+		// since we already have the base we can just add the new offset
+		view->data = (uint8_t*)base + (offset*view->elemSize);
+	}
+
+	view->len = len;
+	view->offset = offset;	
+}
+// uses an existing view to not reallocate memory when the old view isnt needed
+void arrv_reloc(arrView* view, arr array, uint64_t offset, uint64_t len) {
+	if (view == NULL) return;
+	if (array == NULL) return;
+	if (arr_len(array) < offset+len) return;
+
+	view->offset = offset;
+	view->len = len;
+	view->elemSize = arr_elemSize(array);
+	// offset is in elements not bytes
+	view->data = (uint8_t*)array + (arr_elemSize(array) * offset);
+}
+
+void arrv_destroy(arrView* view) {
+	if (view == NULL) return;
+	free(view);
+}
+

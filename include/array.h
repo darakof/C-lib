@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 struct arr_s {
 	uint64_t len, cap;
@@ -57,5 +58,25 @@ size_t arr_elemSize(arr array);
 void* arr_at(arr array, uint64_t index);
 // validates the index of the array
 bool arr_indexvalid(arr array, uint64_t index);
+
+// arr views
+struct arrView {
+	uint64_t offset;
+	uint64_t len;
+	// needed if we want to be able to move the view inside the array without requiring the array to be passed as an argument
+	size_t elemSize;
+	uint8_t* data;
+};
+
+typedef struct arrView arrView;
+
+arrView* arrv_new(arr array, uint64_t offset, uint64_t len);
+
+// moves the view inside the array to the new offset and len
+void arrv_move(arrView* view, uint64_t offset, uint64_t len);
+// uses an existing view to not reallocate memory when the old view isnt needed
+void arrv_reloc(arrView* view, arr array, uint64_t offset, uint64_t len);
+
+void arrv_destroy(arrView* view);
 
 #endif

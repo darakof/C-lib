@@ -42,7 +42,7 @@ void str_destroy(str string) {
 }
 
 // add c to the end of the string
-str str_push(str string, char c) {
+str _str_push(str string, char c) {
 	struct str_s* strhdr = GET_STR_S_HDR(string);
 	if (strhdr->cap < strhdr->len+1) {
 		string = str_grow(string);
@@ -143,3 +143,52 @@ uint64_t str_len(str string) {
 uint64_t str_cap(str string) {
 	return GET_STR_S_HDR(string)->cap;
 }
+
+// string view
+
+strView* strv_new(str string, uint64_t offset, uint64_t len) {
+	if (string == NULL) return NULL;
+	if (str_len(string) < offset+len) return NULL;
+
+	strView* view = (strView*)malloc(sizeof(strView));
+	view->offset = offset;
+	view->len = len;
+	view->data = string + offset;
+
+	return view;
+}
+
+// changes the offset and length of the view inside the same string
+void strv_move(strView* view, uint64_t offset, uint64_t len) {
+	if (view == NULL) return;
+
+	if (offset != view->offset) {
+		char* base = view->data - view->offset;
+		if (str_len(base) < offset+len) return;
+
+		// since we already have the base we can just add the new offset
+		view->data = base + offset;
+	}
+
+	view->len = len;
+	view->offset = offset;
+}
+
+// allows you to use the same allocated string view on another string, replaces all existing data inside the view
+void strv_reloc(strView* view, str string, uint64_t offset, uint64_t len) {
+	if (view == NULL) return;
+	if (string == NULL) return;
+	if (str_len(string) < offset+len) return;
+
+	view->offset = offset;
+	view->len = len;
+	view->data = string + offset;
+}
+
+void strv_destroy(strView* view) {
+	if (view == NULL) return;
+	free(view);
+}
+
+
+

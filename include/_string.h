@@ -13,6 +13,8 @@ struct str_s {
 typedef char* str;
 
 #define GET_STR_S_HDR(s) ((struct str_s*)((s)-(sizeof(struct str_s))))
+#define str_push(string, c) \
+	((string) = _str_push((string), (c));
 
 // create a new blank string with initlen capacity
 str str_new(uint64_t initlen);
@@ -26,7 +28,7 @@ str str_dup(str string);
 void str_destroy(str string);
 
 // add c to the end of the string
-str str_push(str string, char c);
+str _str_push(str string, char c);
 // return the last character and replace it with a null terminator (\0)
 char str_pop(str string);
 // append the C-string to the end of string
@@ -56,5 +58,29 @@ void str_purge(str string, char val);
 uint64_t str_len(str string);
 // get the string max capacity
 uint64_t str_cap(str string);
+
+
+// very bad but good enough
+struct strView {
+	// offset from the begining of the string allows us to move the view back by recalculating the new data pointer
+	uint64_t offset;
+	// doesnt limit the actual length of data
+	uint64_t len;
+	// pointer to the view
+	char* data; // sadly only valid until it is reallocated since the only way to keep it valid is having a pointer to the function variable which holds the actual string poitner and that has lifetime issues
+};
+
+typedef struct strView strView;
+
+strView* strv_new(str string, uint64_t offset, uint64_t len);
+
+// changes the offset and length of the view inside the same string
+void strv_move(strView* view, uint64_t offset, uint64_t len);
+// allows you to use the same allocated string view on another string, replaces all existing data inside the view
+void strv_reloc(strView* view, str string, uint64_t offset, uint64_t len);
+
+void strv_destroy(strView* view);
+
+
 
 #endif //  STRING_H
