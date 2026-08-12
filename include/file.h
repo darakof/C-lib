@@ -6,28 +6,30 @@
 
 #include <stdio.h>
 
-struct FileDesc_s {
+struct FileDesc {
 	str name;
 	FILE* fd;
 	size_t len;
 };
 
-struct MemFile_S {
+struct MemFile {
 	str name;
 	arr data;
 };
 
-typedef struct FileDesc_s* FileDesc;
-typedef struct MemFile_s* MemFile;
+typedef struct FileDesc FileDesc;
+typedef struct MemFile MemFile;
 
-FileDesc FileDesc_open(str name);
-void FileDesc_close(FileDesc file);
+FileDesc* FileDesc_open(char* name);
+void FileDesc_close(FileDesc* file);
 
-uint8_t* FileDesc_read(FileDesc file, uint64_t len);
-void FileDesc_write(FileDesc file, arr data);
+uint8_t* FileDesc_read(FileDesc* file, uint64_t offset, uint64_t len);
+void FileDesc_writelen(FileDesc* file, uint64_t offset, uint8_t* data, uint64_t len);
+void FileDesc_write(FileDesc* file, uint64_t offset, arr data);
 
-MemFile MemFile_open(str name);
-void MemFile_close(MemFile file);
+MemFile* MemFile_open(char* name);
+MemFile* MemFile_reload(MemFile* file);
+void MemFile_close(MemFile* file);
 
 bool File_exists(char* name);
 uint64_t File_size(char* name);
