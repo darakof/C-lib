@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #include "arenamem.h"
 
 #include <stdalign.h>

@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef CLIB_HEAPMEM_H
 #define CLIB_HEAPMEM_H
 

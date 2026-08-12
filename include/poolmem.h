@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef CLIB_POOLMEM_H
 #define CLIB_POOLMEM_H
 

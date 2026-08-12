@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef ERROR_H
 #define ERROR_H
 

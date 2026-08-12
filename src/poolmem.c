@@ -1,4 +1,6 @@
-// works and is effecient but it feels disgusting, probably a way to make it look better and more readable
+// SPDX-License-Identifier: MIT
+
+// works and is effecient (enough) but it feels disgusting, probably a way to make it look better and more readable
 
 #include "poolmem.h"
 

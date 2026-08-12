@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef CLIB_ARENA_ALLOC_H
 #define CLIB_ARENA_ALLOC_H
 

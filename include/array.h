@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef CLIB_ARRAY_H
 #define CLIB_ARRAY_H
 

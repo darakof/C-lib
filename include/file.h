@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 #ifndef CLIB_FILE_H
 #define CLIB_FILE_H
 
