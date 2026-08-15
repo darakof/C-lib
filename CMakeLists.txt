@@ -16,9 +16,18 @@ add_library(clib STATIC
 
 target_include_directories(clib PUBLIC include)
 
+include(FetchContent)
+
 # setup criterion for tests
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(CRITERION REQUIRED criterion)
+find_package(Criterion QUIET)
+if (NOT Criterion_FOUND)
+	FetchContent_Declare(
+		Criterion
+		GIT_REPOSITORY https://github.com/snaipe/criterion
+		GIT_TAG v2.4.3
+	)
+	FetchContent_MakeAvailable(Criterion)
+endif()
 
 # create all tests (adding a file automatically adds the test)
 # test files dont require the tests directory
@@ -47,9 +56,6 @@ foreach(TEST_SRC tests/${TEST_FILES})
 endforeach()
 
 # performance benchmarks with C++
-
-# needed for google benchmark
-include(FetchContent)
 
 # stop google benchmarks from doing internal tests
 set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
