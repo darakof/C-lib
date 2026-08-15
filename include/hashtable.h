@@ -68,7 +68,11 @@ void ht_destroy(HashTable* hashtable);
 void ht_set_cmpfn(HashTable* hashtable, ht_cmp_fn compareFunction);
 void ht_set_hashfn(HashTable* hashtable, ht_hash_fn hashFunction);
 
-bool ht_addKey(HashTable* hashtable, void* key, uint64_t valueIndex);
+bool ht_addKey(HashTable* hashtable, void* key, uint64_t value);
 bool ht_getVal(HashTable* hashtable, void* key, uint64_t* retVal);
+bool ht_delete(HashTable* hashtable, void* key);
+
+// resize to fit maxKeys amount of entries, can only shrink up to the amount of entries currently in the table
+void ht_resize(HashTable* hashtable, uint64_t maxKeys);
 
 #endif
