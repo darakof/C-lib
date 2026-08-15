@@ -20,15 +20,31 @@ target_include_directories(clib PUBLIC include)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(CRITERION REQUIRED criterion)
 
-add_executable(unit_tests tests/test_suite.c)
-target_include_directories(unit_tests PRIVATE ${CRITERION_INCLUDE_DIRS})
-target_link_libraries(unit_tests PRIVATE clib ${CRITERION_LIBRARIES})
+# create all tests (adding a file automatically adds the test)
+# test files dont require the tests directory
+set(TEST_FILES
+	test_hashtable.c
+)
 
-# enable sanitizers and other debug options for unit tests
-target_compile_options(unit_tests PRIVATE
-	-g3 -O0 -fsanitize=address,undefined -fno-omit-frame-pointer)
-target_link_options(unit_tests PRIVATE
-	-fsanitize=address,undefined)
+enable_testing()
+
+foreach(TEST_SRC tests/${TEST_FILES})
+	# get the name without extension
+	get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
+	
+	add_executable(${TEST_NAME} ${TEST_SRC})
+	
+	target_include_directories(${TEST_NAME} PRIVATE ${CRITERION_INCLUDE_DIRS})
+	target_link_libraries(${TEST_NAME} PRIVATE clib ${CRITERION_LIBRARIES})
+
+	# enable sanitizers and other debug options for the test
+	target_compile_options(${TEST_NAME} PRIVATE
+		-g3 -O0 -fsanitize=address,undefined -fno-omit-frame-pointer)
+	target_link_options(${TEST_NAME} PRIVATE
+		-fsanitize=address,undefined)
+
+	add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+endforeach()
 
 # performance benchmarks with C++
 
