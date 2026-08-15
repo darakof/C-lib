@@ -79,7 +79,6 @@ static inline void writeKey(HashTable* hashtable, void* key, uint64_t value, uin
 	// write the value after the key
 	uint64_t* valueLoc = (uint64_t*)((uint8_t*)keyLoc + hashtable->KeySize);
 	*valueLoc = value;
-	printf("holy bro this pointer arithmetic :( keyLoc: %p keySize: %llu valueLoc: %p value: %llu\0", keyLoc, hashtable->KeySize, (uint8_t*)valueLoc, (unsigned long long)value);
 }
 
 static inline uint64_t* getValAtIndex(uint64_t* keys, uint64_t index, size_t keySize) {	
@@ -166,7 +165,6 @@ static inline bool addEntry(HashTable* hashtable, uint8_t fprint, uint64_t hash,
 static inline uint64_t* getEntry(HashTable* hashtable, uint8_t fprint, uint64_t hash, uint64_t* key) {
 	uint32_t distance = 0;
 	uint64_t index = hash & hashtable->indexMask;
-
 	// TODO: has a bunch of repeating code so would have to make it its own label instead
 	while (true) {
 		if (index == hashtable->capacity) {
@@ -203,6 +201,8 @@ static inline uint64_t* getEntry(HashTable* hashtable, uint8_t fprint, uint64_t 
 }
 
 bool ht_addKey(HashTable* hashtable, void* key, uint64_t value) {
+	if (hashtable == NULL) return false;
+
 	// double capacity if needed
 	if (hashtable->used >= hashtable->useCap)
 		ht_resize(hashtable, hashtable->capacity*2);
@@ -217,14 +217,18 @@ bool ht_addKey(HashTable* hashtable, void* key, uint64_t value) {
 }
 
 bool ht_getVal(HashTable* hashtable, void* key, uint64_t* retVal) {
+	if (hashtable == NULL) return false;
+
 	uint64_t hash = hashtable->hash(key);
 	uint64_t* keyLoc = getEntry(hashtable, getfprint(hash) | 1, hash, (uint64_t*)key);
 	if (keyLoc == NULL) return false;
-	*retVal = *(keyLoc + hashtable->KeySize);
+	*retVal = *((uint8_t*)keyLoc + hashtable->KeySize);
 	return true;
 }
 
 bool ht_delete(HashTable *hashtable, void *key) {
+	if (hashtable == NULL) return false;
+
 	uint64_t hash = hashtable->hash(key);
 	
 	uint64_t* keyEntry = getEntry(hashtable, getfprint(hash) | 1, hash, (uint64_t*)key);
@@ -258,7 +262,9 @@ bool ht_delete(HashTable *hashtable, void *key) {
 }
 
 void ht_resize(HashTable *hashtable, uint64_t maxKeys) {
+	if (hashtable == NULL) return;
 	if (hashtable->used > maxKeys) return;
+	
 	// make sure the size is correctly alligned
 	maxKeys = ALIGN_UP(maxKeys, 8);
 
