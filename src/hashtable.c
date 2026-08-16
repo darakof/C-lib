@@ -10,6 +10,23 @@
 // allows us to align the key size and capacities so everything is correctly aligned
 #define ALIGN_UP(num, align) (((num) + ((align) - 1)) & ~((align) - 1))
 
+static uint64_t nextPowerOfTwo(uint64_t x)
+{
+    if (x <= 1)
+        return 1;
+
+    x--;
+
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x |= x >> 32;
+
+    return x + 1;
+}
+
 // return the fingerprint based on the hash
 // i gotta test it for whether the higher or lower bits are better for collisions
 static inline uint8_t getfprint(uint64_t hash) {
@@ -18,7 +35,7 @@ static inline uint8_t getfprint(uint64_t hash) {
 
 HashTable* ht_new(size_t KeySize) {
 	size_t alignedKeySize = ALIGN_UP(KeySize, 8);
-	uint64_t alignedInitCap = ALIGN_UP((HASHTABLE_INITCAP), 8);
+	uint64_t alignedInitCap = nextPowerOfTwo(HASHTABLE_INITCAP);
 	HashTable* hashtable = (HashTable*)malloc(sizeof(HashTable));
 	if (hashtable == NULL) return NULL;
 	hashtable->hash = NULL;
@@ -92,84 +109,73 @@ static inline uint64_t getIndexFromVal(uint64_t* keys, uint64_t* key, size_t Key
 }
 
 // allows us to switch the algorithm for probing the table
-static inline uint64_t increaseIndex(uint64_t index) {
+static inline uint64_t increaseIndex(uint64_t index, uint64_t mask) {
 	// simple linear probing
-	return index+1;
+	return (index+1) & mask;
 }
 
-static inline void replaceEntry(HashTable* hashtable, uint8_t* fingerprint, uint32_t* distance, uint64_t* hash, void** key, uint64_t* value, uint64_t index) {
+static inline void replaceEntry(HashTable* hashtable, uint8_t* fingerprint, uint32_t* distance, uint64_t* hash, uint8_t** key, uint64_t* value, uint64_t index, uint8_t* tmpbuf) {
 	// copy the entry[index] values and then write out current values
 	uint8_t newFingerprint = hashtable->fingerprints[index];
 	uint32_t newDistance = hashtable->distances[index];
 	uint64_t newHash = hashtable->hashes[index];
-	uint64_t* newKeyVal = (uint64_t*)malloc(hashtable->KeySize + sizeof(uint64_t));
-	memcpy(newKeyVal, getValAtIndex(hashtable->keys, index, hashtable->KeySize), hashtable->KeySize+sizeof(uint64_t));
-	writeKey(hashtable, key, *value, index, *fingerprint, *distance, *hash);
+	uint8_t* tmpptr = (uint8_t*)getValAtIndex(hashtable->keys, index, hashtable->KeySize);
+	memcpy(tmpbuf, tmpptr, hashtable->KeySize+sizeof(uint64_t));
+	writeKey(hashtable, *key, *value, index, *fingerprint, *distance, *hash);
+	memcpy(*key, tmpbuf, hashtable->KeySize);
 	*fingerprint = newFingerprint;
 	*distance = newDistance;
 	*hash = newHash;
-	*key = newKeyVal;
-	*value = *(newKeyVal + hashtable->KeySize);
+	*value = *(uint64_t*)((uint8_t*)(tmpbuf) + hashtable->KeySize);
 }
 
 static inline bool addEntry(HashTable* hashtable, uint8_t fprint, uint64_t hash, void* key, uint64_t value) {
 	uint32_t distance = 0;
-
 	uint64_t index = hash & hashtable->indexMask;
 
-	// just return when we find or dont find a spot
+	uint8_t* keybuf = (uint8_t*)malloc(hashtable->KeySize);
+	if (keybuf == NULL) return false;
+	uint8_t* tmpbuf = (uint8_t*)malloc(hashtable->KeySize + sizeof(uint64_t));
+	if (tmpbuf == NULL) return false;
+
+	memcpy(keybuf, key, hashtable->KeySize);
 	while (true) {
-		if (distance == hashtable->capacity) {
-			// simply restart from the begining since we know theres some free space in the table
-			index = 0;
-		}
-		if (hashtable->fingerprints[index] == 0){
-			writeKey(hashtable, key, value, index, fprint, distance, hash);
-			hashtable->used = hashtable->used + 1;
+		if (hashtable->fingerprints[index] == 0) {
+			writeKey(hashtable, keybuf, value, index, fprint, distance, hash);
+			hashtable->used++;
+			free(keybuf);
+			free(tmpbuf);
 			return true;
 		}
-		else if (hashtable->fingerprints[index] == fprint) {
-			// collision and since the fingerprint isn't as unique might be a different value
-			if (distance == hashtable->distances[index]) {
-				// expected with a limited hashtable size
-				if (hash == hashtable->hashes[index]) {
-					// this means that the hash that was used isn't perfect in generating prng values
-					if (hashtable->cmp(key, getValAtIndex(hashtable->keys, index, hashtable->KeySize)) == true) {
-						// the user has entered the same key as before
-						// assume the user wants to redefine the value but we could handle it diffirently
-						uint64_t* valLoc = getValAtIndex(hashtable->keys, index, hashtable->KeySize) + hashtable->KeySize;
-						*valLoc = value;
-						continue;
-					}
-				}
-			}
-			// since we only CONTINUE if all IFs succeed this would run if its a diffirent key
-			if (distance > hashtable->distances[index]) {
-				replaceEntry(hashtable, &fprint, &distance, &hash, &key, &value, index);
-				index = increaseIndex(index);
-				distance = distance + 1;
-				continue;
+		if (hashtable->fingerprints[index] == fprint &&
+			hashtable->hashes[index] == hash) {
+			
+			uint8_t* curKey = (uint8_t*)getValAtIndex(hashtable->keys, index, hashtable->KeySize);
+			if (hashtable->cmp(keybuf, curKey)) {
+				uint64_t* curVal = (uint64_t*)(curKey + hashtable->KeySize);
+				*curVal = value;
+
+				free(keybuf);
+				free(tmpbuf);
+				return true;
 			}
 		}
-		else {
-			if (distance > hashtable->distances[index]) {
-				replaceEntry(hashtable, &fprint, &distance, &hash, &key, &value, index);
-				index = increaseIndex(index);
-				distance = distance + 1;
-			}
+
+		// robin hood swap
+		if (distance > hashtable->distances[index]) {
+			replaceEntry(hashtable, &fprint, &distance, &hash, &keybuf, &value, index, tmpbuf);
 		}
+
+		index = increaseIndex(index, hashtable->indexMask);
+		distance++;
 	}
 }
-
 // returns the index for the key
 static inline uint64_t* getEntry(HashTable* hashtable, uint8_t fprint, uint64_t hash, uint64_t* key) {
 	uint32_t distance = 0;
 	uint64_t index = hash & hashtable->indexMask;
 	// TODO: has a bunch of repeating code so would have to make it its own label instead
 	while (true) {
-		if (index == hashtable->capacity) {
-			index = 0;
-		}
 		if (hashtable->fingerprints[index] == 0) {
 			// if the entry is empty we know that the entry we're looking for doesnt exist
 			return NULL;
@@ -179,17 +185,17 @@ static inline uint64_t* getEntry(HashTable* hashtable, uint8_t fprint, uint64_t 
 			return NULL;
 		}
 		else if (hashtable->fingerprints[index] != fprint) {
-			index = increaseIndex(index);
+			index = increaseIndex(index, hashtable->indexMask);
 			distance = distance + 1;
 			continue;
 		}
 		else if (hashtable->hashes[index] != hash) {
-			index = increaseIndex(index);
+			index = increaseIndex(index, hashtable->indexMask);
 			distance = distance + 1;
 			continue;
 		}
 		else if (hashtable->cmp(getValAtIndex(hashtable->keys, index, hashtable->KeySize), key) == false) {
-			index = increaseIndex(index);
+			index = increaseIndex(index, hashtable->indexMask);
 			distance = distance + 1;
 			continue;
 		}
@@ -222,7 +228,7 @@ bool ht_getVal(HashTable* hashtable, void* key, uint64_t* retVal) {
 	uint64_t hash = hashtable->hash(key);
 	uint64_t* keyLoc = getEntry(hashtable, getfprint(hash) | 1, hash, (uint64_t*)key);
 	if (keyLoc == NULL) return false;
-	*retVal = *((uint8_t*)keyLoc + hashtable->KeySize);
+	*retVal = *(uint64_t*)((uint8_t*)keyLoc + hashtable->KeySize);
 	return true;
 }
 
@@ -265,8 +271,8 @@ void ht_resize(HashTable *hashtable, uint64_t maxKeys) {
 	if (hashtable == NULL) return;
 	if (hashtable->used > maxKeys) return;
 	
-	// make sure the size is correctly alligned
-	maxKeys = ALIGN_UP(maxKeys, 8);
+	// make sure the size is correctly setup
+	maxKeys = nextPowerOfTwo(maxKeys);
 
 	uint8_t* oldFprints = hashtable->fingerprints;
 	uint64_t* oldHashes = hashtable->hashes;
@@ -282,19 +288,26 @@ void ht_resize(HashTable *hashtable, uint64_t maxKeys) {
 	hashtable->hashes = (uint64_t*)((uint8_t*)base + (sizeof(uint8_t)+sizeof(uint32_t)) * maxKeys);
 	hashtable->keys = (uint64_t*)((uint8_t*)base + (sizeof(uint8_t)+sizeof(uint32_t)+sizeof(uint64_t)) * maxKeys);
 
-	uint64_t movesLeft = hashtable->used;
+	uint64_t oldCap = hashtable->capacity;
 	hashtable->used = 0;
 	hashtable->capacity = maxKeys;
 	hashtable->useCap = maxKeys * HASHTABLE_LOADPREF;
+	hashtable->indexMask = maxKeys - 1;
+	
+	for (uint64_t index = 0; index < oldCap; ++index) {
+	    if (oldFprints[index] == 0)
+    	    continue;
 
-	uint64_t index = 0;
-	while (movesLeft != 0) {
-		if (oldFprints[index] != 0) {
-			uint64_t* key = getValAtIndex(oldKeys, index, hashtable->KeySize);
-			addEntry(hashtable, oldFprints[index], oldHashes[index], key, *(((uint8_t*)key)+hashtable->KeySize));
-			movesLeft = movesLeft - 1;
-		}
-		index = index + 1;
+	    uint64_t* key =
+    	    getValAtIndex(oldKeys, index, hashtable->KeySize);
+
+	    addEntry(
+    	    hashtable,
+        	oldFprints[index],
+    	    oldHashes[index],
+	        key,
+        	*(uint64_t*)((uint8_t*)key + hashtable->KeySize)
+    	);
 	}
 
 	free(oldFprints);

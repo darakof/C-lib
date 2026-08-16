@@ -19,15 +19,72 @@ target_include_directories(clib PUBLIC include)
 include(FetchContent)
 
 # setup criterion for tests
-find_package(Criterion QUIET)
-if (NOT Criterion_FOUND)
-	FetchContent_Declare(
-		Criterion
-		GIT_REPOSITORY https://github.com/snaipe/criterion
-		GIT_TAG v2.4.3
-	)
-	FetchContent_MakeAvailable(Criterion)
-endif()
+FetchContent_Declare(
+    Criterion
+    GIT_REPOSITORY https://github.com/Snaipe/Criterion.git
+    GIT_TAG v2.4.3
+)
+
+FetchContent_MakeAvailable(Criterion)
+
+set(CRITERION_SOURCE_DIR
+    "${criterion_SOURCE_DIR}"
+)
+
+set(CRITERION_BUILD_DIR
+    "${criterion_BINARY_DIR}/build"
+)
+
+set(CRITERION_LIBRARY
+    "${CRITERION_BUILD_DIR}/src/libcriterion.so"
+)
+
+# Build Criterion with Meson.
+add_custom_command(
+    OUTPUT "${CRITERION_LIBRARY}"
+
+    COMMAND
+        meson setup .
+        "${CRITERION_BUILD_DIR}"
+
+    COMMAND
+        meson compile
+        -C "${CRITERION_BUILD_DIR}"
+
+    WORKING_DIRECTORY
+        "${CRITERION_SOURCE_DIR}"
+
+    COMMENT
+        "Building Criterion"
+)
+
+add_custom_target(
+    criterion_build
+    DEPENDS "${CRITERION_LIBRARY}"
+)
+
+# CMake representation of the library built by Meson.
+add_library(
+    Criterion::Criterion
+    SHARED
+    IMPORTED
+    GLOBAL
+)
+
+set_target_properties(
+    Criterion::Criterion
+    PROPERTIES
+        IMPORTED_LOCATION
+            "${CRITERION_LIBRARY}"
+
+        INTERFACE_INCLUDE_DIRECTORIES
+            "${CRITERION_SOURCE_DIR}/include"
+)
+
+add_dependencies(
+    Criterion::Criterion
+    criterion_build
+)
 
 # create all tests (adding a file automatically adds the test)
 # test files dont require the tests directory
@@ -37,14 +94,13 @@ set(TEST_FILES
 
 enable_testing()
 
-foreach(TEST_SRC tests/${TEST_FILES})
+foreach(TEST_SRC ${TEST_FILES})
 	# get the name without extension
 	get_filename_component(TEST_NAME ${TEST_SRC} NAME_WE)
 	
-	add_executable(${TEST_NAME} ${TEST_SRC})
+	add_executable(${TEST_NAME} tests/${TEST_SRC})
 	
-	target_include_directories(${TEST_NAME} PRIVATE ${CRITERION_INCLUDE_DIRS})
-	target_link_libraries(${TEST_NAME} PRIVATE clib ${CRITERION_LIBRARIES})
+	target_link_libraries(${TEST_NAME} PRIVATE clib Criterion::Criterion)
 
 	# enable sanitizers and other debug options for the test
 	target_compile_options(${TEST_NAME} PRIVATE
@@ -69,7 +125,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googlebenchmark)
 
 add_executable(benchmarks benchmarks/benchmark_map.cpp)
-target_link_libraries(benchmarks PRIVATE clib benchmark::benchmark benchmark::benchmark_main)
+target_link_libraries(benchmarks PRIVATE clib benchmark::benchmark_main)
 
 target_compile_options(benchmarks PRIVATE
 	-O3 -g -fno-omit-frame-pointer -march=native)

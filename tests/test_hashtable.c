@@ -4,6 +4,8 @@
 #define HASHTABLE_INITCAP 7
 #include "hashtable.h"
 
+#include <stdio.h>
+
 uint64_t hashtable_hashu64(void* key) {
 	// just return the key since its 64 bit
 	return *(uint64_t*)key;
@@ -12,6 +14,15 @@ uint64_t hashtable_hashu64(void* key) {
 bool hashtable_cmpu64(void* lhs, void* rhs) {
 	// simple 64 bit comparison
 	return *(uint64_t*)lhs == *(uint64_t*)rhs;
+}
+
+uint64_t rng_state;
+uint64_t next_rand_uint64(void) {
+	rng_state += 0x9e3779b97f4a7c15ULL;
+    uint64_t z = rng_state;
+    z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
+    return z ^ (z >> 31);
 }
 
 Test(hashtable, initalization) {
@@ -75,5 +86,51 @@ Test(hashtable, deletion) {
 	ht_getVal(hashtableu64, &tempKey, &tempVal);
 	cr_assert(hashtableu64->used == 0, "hash table incorrectly changes entry count after deletion expected: %llu received: %llu", (unsigned long long)0, (unsigned long long)hashtableu64->used);
 	cr_assert(tempVal == 0, "hash table unable to delete entry");
+	ht_destroy(hashtableu64);
+}
+
+Test(hashtable, tryautogrowth) {
+	HashTable* hashtableu64 = ht_new(sizeof(uint64_t));
+	ht_set_hashfn(hashtableu64, hashtable_hashu64);
+	ht_set_cmpfn(hashtableu64, hashtable_cmpu64);
+	uint64_t tempKey = 39;
+	uint64_t tempVal = 0;
+	for (int i = 0; i < 100; i++) {
+		tempKey++;
+		tempVal++;
+		ht_addKey(hashtableu64, &tempKey, tempVal);
+	}
+	cr_assert(hashtableu64->used == 100, "adding 100 entries failed entry count: %llu", (unsigned long long)hashtableu64->used);
+	ht_destroy(hashtableu64);
+}
+
+Test(hashtable, largeresize) {
+	HashTable* hashtableu64 = ht_new(sizeof(uint64_t));
+	ht_set_hashfn(hashtableu64, hashtable_hashu64);
+	ht_set_cmpfn(hashtableu64, hashtable_cmpu64);
+	uint64_t tempKey = 39;
+	uint64_t tempVal = 0;
+	ht_resize(hashtableu64, 100);
+	for (int i = 0; i < 100; i++) {
+		tempKey++;
+		tempVal++;
+		ht_addKey(hashtableu64, &tempKey, tempVal);
+	}
+	cr_assert(hashtableu64->used == 100, "adding 100 entries failed entry count: %llu", (unsigned long long)hashtableu64->used);
+	ht_destroy(hashtableu64);
+}
+
+Test(hashtable, prng) {
+	HashTable* hashtableu64 = ht_new(sizeof(uint64_t));
+	ht_set_hashfn(hashtableu64, hashtable_hashu64);
+	ht_set_cmpfn(hashtableu64, hashtable_cmpu64);
+	uint64_t tempVal = 0;
+	uint64_t tempKey;
+	for (int i = 0; i < 1000; i++) {
+		tempKey = next_rand_uint64();
+		tempVal++;
+		ht_addKey(hashtableu64, &tempKey, tempVal);
+	}
+	cr_assert(hashtableu64->used == 1000, "adding 100 entries failed entry count: %llu", (unsigned long long)hashtableu64->used);
 	ht_destroy(hashtableu64);
 }
