@@ -3,8 +3,10 @@ cmake_minimum_required(VERSION 3.14)
 # C++ also provides built in implementations of similar functionality allowing us to test performance differences
 project(Clib VERSION 1.0 LANGUAGES C CXX)
 
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
 # build Clib
-add_library(clib STATIC 
+add_library(clib
 	src/arenamem.c 
 	src/file.c 
 	src/hashtable.c
@@ -14,7 +16,11 @@ add_library(clib STATIC
 	src/string.c
 )
 
-target_include_directories(clib PUBLIC include)
+target_include_directories(clib 
+	PUBLIC 
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+)
 
 include(FetchContent)
 
