@@ -3,12 +3,9 @@ cmake_minimum_required(VERSION 3.14)
 # C++ also provides built in implementations of similar functionality allowing us to test performance differences
 project(Clib VERSION 1.0 LANGUAGES C CXX)
 
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
-
-# build Clib
-add_library(clib
-	src/arenamem.c 
-	src/file.c 
+set(clib_SOURCE_FILES
+	src/arenamem.c
+	src/file.c
 	src/hashtable.c
 	src/poolmem.c
 	src/array.c
@@ -16,10 +13,32 @@ add_library(clib
 	src/string.c
 )
 
+# build Clib (static)
+add_library(clib STATIC
+	${clib_SOURCE_FILES}
+)
+
 target_include_directories(clib 
 	PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<INSTALL_INTERFACE:include>
+)
+
+#build Clib (shared)
+add_library(clib_shared SHARED
+	${clib_SOURCE_FILES}
+)
+
+target_include_directories(clib_shared 
+	PUBLIC
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+		$<INSTALL_INTERFACE:include>
+)
+
+# make the shared library have same output name as the static one
+set_target_properties(clib_shared
+	PROPERTIES
+		OUTPUT_NAME clib
 )
 
 include(FetchContent)
@@ -135,3 +154,31 @@ target_link_libraries(benchmarks PRIVATE clib benchmark::benchmark_main)
 
 target_compile_options(benchmarks PRIVATE
 	-O3 -g -fno-omit-frame-pointer -march=native)
+
+# install clib to the system
+# exposes names that follow the standard convention in cmake
+add_library(clib::Static ALIAS clib)
+add_library(clib::Shared ALIAS clib_shared)
+
+# install library files
+install(
+	TARGETS clib clib_shared
+	EXPORT clibTargets
+	ARCHIVE DESTINATION lib
+	LIBRARY DESTINATION lib
+	RUNTIME DESTINATION bin
+)
+
+# install headers
+install(
+	DIRECTORY include/
+	DESTINATION include/clib
+)
+
+# install the library for cmake so you can use `find_package(clib)`
+install(
+	EXPORT clibTargets
+	FILE clibTargets.cmake
+	NAMESPACE clib::
+	DESTINATION lib/cmake/clib
+)
